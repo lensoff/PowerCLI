@@ -1,5 +1,5 @@
-
-w to add, remove and extend VM’s disk		##
+##################################################
+##	How to add, remove and extend VM’s disk		##
 ##################################################
 
 ###########
@@ -52,4 +52,3 @@ $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 		}
 }	
 $table | select cl,vm,capacity | Export-Csv -Path $path -NoTypeInformation -UseCulture -Encoding UTF8
-

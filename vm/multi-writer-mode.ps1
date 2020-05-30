@@ -5,13 +5,13 @@
 $array = @()
 $vms = get-cluster "ClusterName" | get-vm
 foreach ($vm in $vms){
-	$disks = get-advancedsetting -Entity $vm | ? { $_.Value -like вЂњ*multi-writer*вЂќ  }
+	$disks = get-advancedsetting -Entity $vm | ? { $_.Value -like “*multi-writer*”  }
 	foreach ($disk in $disks){
 		$REPORT = New-Object -TypeName PSObject
 		$REPORT | Add-Member -type NoteProperty -name Name -Value $vm.Name
 		$REPORT | Add-Member -type NoteProperty -name VMHost -Value $vm.Host
 		$REPORT | Add-Member -type NoteProperty -name Mode -Value $disk.Name
-		$REPORT | Add-Member -type NoteProperty -name Type -Value вЂњMultiWriterвЂќ
+		$REPORT | Add-Member -type NoteProperty -name Type -Value “MultiWriter”
 		$array += $REPORT
 	}
 }

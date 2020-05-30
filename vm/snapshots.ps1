@@ -14,7 +14,7 @@ $vm | new-snapshot -Name "Demo" -Description "Demo snapshot" -Quiesce -Memory
 $vm | set-vm -Snapshot "before"
 #Remove the snapshot
 $vm | remove-snapshot -Name "before"
-$vm | get-snapshot -name "before" | remove-snapshot -RunAsync -confirm:$false #вЂ“RemoveChildren
+$vm | get-snapshot -name "before" | remove-snapshot -RunAsync -confirm:$false #–RemoveChildren
 get-snapshot -vm * | remove-snapshot -RemoveChildren -RunAsync -confirm:$false
 # Consolidation
 Get-VM | Where-Object {$_.Extensiondata.Runtime.ConsolidationNeeded}
