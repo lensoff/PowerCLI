@@ -402,3 +402,30 @@ ForEach ( $hosts in  get-vmhost | Where {$_.Build -eq "9313334"} | Get-AdvancedS
 	Write-Host "Working on host" $hosts -ForegroundColor "Yellow"
 	Get-VMHost $hosts.Entity | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | Set-AdvancedSetting -Value 1 -Confirm:$false
 }
+
+#################
+#	Reports
+#################
+# Cluster,Host,HBA,Targets,Devices,Paths
+$table = foreach ($cl in Get-Cluster | sort) {
+	Write-host ""
+	Write-Host $cl.Name
+	Write-host ""
+	foreach( $esx in $cl | Get-VMHost | sort | where { $_.Name -like "srv*" -And $_.ConnectionState -ne "NotResponding" -And $_.ConnectionState -ne "Disconnected" } ){
+		Write-Host $esx.Name
+		foreach($hba in (Get-VMHostHba -VMHost $esx -Type "ISCSI")){
+			$target = $hba.VMhost.ExtensionData.Config.StorageDevice.ScsiTopology.Adapter | where {$_.Adapter -eq $hba.Key} | ForEach {$_.Target}
+			$luns = (Get-ScsiLun -Hba $hba -LunType "disk" -ErrorAction SilentlyContinue).Count
+			$nrPaths = $target | ForEach {$_.Lun.Count} | Measure-Object -Sum | select -ExpandProperty Sum
+			New-Object PSObject -Property @{
+				Host = $esx.Name
+				Cluster = $esx.Parent
+				HBA = $hba.Name
+				Targets = if($target -eq $null){0}else{@($target).Count}
+				Devices = $luns
+				Paths = $nrPaths
+			}
+		}
+	}	
+}
+$table | select Host,Cluster,HBA,Targets,Devices,Paths | Export-Csv -Path "D:\paths.csv" -NoTypeInformation -UseCulture -Encoding UTF8
