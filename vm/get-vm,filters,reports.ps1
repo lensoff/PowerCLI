@@ -72,6 +72,7 @@ $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 }
 $table | select cl,vm,hostname | Export-Csv -Path d:\0\0-kur-rec-old.csv -NoTypeInformation -UseCulture -Encoding UTF8
 #Рекордеры, расположенные на серебре
+$abc = "d:\0\0-kur-rec-silver.csv"
 $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 	Write-Host $cl.Name
 	ForEach ( $ds in $cl | get-datastore | where { $_.Name -match "-s$" } | sort ) {
@@ -86,7 +87,8 @@ $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 		}
 	}
 }
-$table | select cl,ds,vm,hostname | Export-Csv -Path d:\0\0-kur-rec-silver.csv -NoTypeInformation -UseCulture -Encoding UTF8
+$table | select cl,ds,vm,hostname | Export-Csv -Path $abc -NoTypeIniformation -UseCulture -Encoding UTF8
+invoke-item $abc
 
 #Количество свободного места под рекордеры в кластерах
 $abc = "d:/0-kur-vmcl-vm.csv"
@@ -101,3 +103,4 @@ $table = ForEach ( $cl in get-cluster *VMCL* | where { $_.Name -ne "VMCL18" } | 
 
 }
 $table | select cl,vm,vmCapacity | Export-Csv -Path $abc -NoTypeInformation -UseCulture -Encoding UTF8
+invoke-item $abc
