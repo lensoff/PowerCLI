@@ -1,3 +1,8 @@
+##################################################
+#	Configure PowerShell Execution Policy
+##################################################
+Set-ExecutionPolicy RemoteSigned
+
 ############################################
 #	Install and configure the module
 ############################################
