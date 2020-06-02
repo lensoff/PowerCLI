@@ -392,6 +392,21 @@ ForEach ( $esx in get-vmhost $hosts | sort ) {
 	$esx | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Start-VMHostService | Out-Null
 	$esx | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Set-VMHostService -policy "on" | Out-Null
 }
+
+
+###################################
+#	configure fan speed ( supermicro ipmi)
+###################################
+cd c:\SMCIPMITool_2.23.0_build.191216_bundleJRE_Windows
+ForEach ($esx in $hosts) {
+	$esxipmi = $esx.Name.Insert(8,'.ipmi')
+	Write-Host "Host" $esxipmi -ForegroundColor "Yellow"
+	#(& ./SMCIPMITool.exe $esxipmi ADMIN ADMIN ipmi fan)[0]
+	Write-Host "Configuring standart speed Fan mode"
+	& ./SMCIPMITool.exe $esxipmi ADMIN ADMIN ipmi fan 0 | Out-Null
+	(& ./SMCIPMITool.exe $esxipmi ADMIN ADMIN ipmi fan)[0]
+	Write-Host " "
+}
  
 #################################
 #	SuppressHyperthreadWarning	#
