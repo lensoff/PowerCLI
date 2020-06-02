@@ -6,7 +6,6 @@ Set-ExecutionPolicy RemoteSigned
 ############################################
 #	Install and configure the module
 ############################################
-
 Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
 Install-Module -Name VMware.PowerCLI -Scope CurrentUser
 Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false
