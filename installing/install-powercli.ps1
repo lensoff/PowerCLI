@@ -8,7 +8,7 @@ Set-PowerCLIConfiguration -InvalidCertificateAction Ignore -Confirm:$false
 Set-PowerCLIConfiguration -Scope User -ParticipateInCEIP $false -Confirm:$false
 
 ############################
-# Optional parameter
+#	Optional parameter
 ############################
 Set-PowerCLIConfiguration -DefaultVIServerMode Multiple -Confirm:$false
 
