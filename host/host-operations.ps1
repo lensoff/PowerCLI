@@ -55,6 +55,25 @@ Get-Content hosts.txt | Foreach-Object {Add-VMHost $_ -Location (Get-Datacenter 
 #https://www.virten.net/2013/03/add-multiple-esxi-hosts-to-vcenter-with-powercli/
 
 #################
+#	Updates
+#################
+#put the ESXi host VMHost-1 into maintenance mode
+Set-VMHost -VMHost VMHost-1 -State Maintenance
+#place the critical host baseline into the $Baseline variable for use in future commands
+$Baseline = Get-Baseline -Name 'Critical Host Patches (Predefined)'
+#ensure the baseline is attached to host
+Add-EntityBaseline -Entity VMHost-1 -Baseline $Baseline
+#or
+Attach-Baseline -Entity VMHost-1 -Baseline $Baseline
+#test whether the host is in compliance
+Test-Compliance -Entity VMHost-1 -UpdateType HostPatch #-Verbose
+Get-Compliance -Entity VMHost-1 -Baseline $Baseline #-ComplianceStatus NotCompliant
+#stage the patches to the host
+Copy-Patch -Entity VMHost-1 -Confirm:$false
+#deploy the patch to my hosts
+Update-Entity -Baseline $baseline -Entity VMHost-1 -RunAsync -Confirm:$False
+
+#################
 #	Network
 #################
 #network adapters
