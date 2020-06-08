@@ -393,6 +393,34 @@ ForEach ( $esx in get-vmhost $hosts | sort ) {
 	$esx | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Set-VMHostService -policy "on" | Out-Null
 }
 
+################################
+#	Atomic Test and Set (ATS) locking
+################################
+$clusterName = ''
+
+#Configure
+Get-Cluster -Name $clusterName | Get-VMHost |
+Get-AdvancedSetting -Name VMFS3.UseATSForHBOnVMFS5 |
+Set-AdvancedSetting -Value 0 -Confirm:$false
+#Rollback
+Get-Cluster -Name $clusterName | Get-VMHost |
+Get-AdvancedSetting -Name VMFS3.UseATSForHBOnVMFS5 |
+Set-AdvancedSetting -Value 1 -Confirm:$false
+
+#list
+$table = ForEach ( $cl in Get-Cluster | sort ) {	
+	ForEach ($esx in $cl | get-vmhost | sort) {
+		New-Object PSObject -Property @{
+			cl = $cl.Name
+			esx = $esx.Name
+			ats = ($esx | Get-AdvancedSetting -Name VMFS3.UseATSForHBOnVMFS5).Value
+		}
+	}
+}
+$table | select cl,esx,ats | Export-Csv -Path "D:\0-Report-Kur-ATS.csv" -NoTypeInformation -UseCulture -Encoding UTF8
+
+#esxcli
+esxcli storage vmfs lockmode list
 
 ###################################
 #	configure fan speed ( supermicro ipmi)
