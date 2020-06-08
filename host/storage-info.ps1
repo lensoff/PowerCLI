@@ -58,3 +58,181 @@ $table = ForEach ( $cl in get-cluster | sort ) {
 }
 $table | select cl,name,vmfs,vm,CapacityGB,FreeSpaceGB,naa | Export-Csv -Path $abc -NoTypeInformation -UseCulture -Encoding UTF8
 
+#################################
+#	Show Local Intel SSD disk
+#################################
+$table1 = ForEach ( $cl in get-cluster | sort ) {
+	Write-Host $cl.Name
+
+	ForEach ( $vmhost in $cl | get-vmhost | where { $_.ConnectionState -eq "Connected" -or $_.ConnectionState -eq "Maintenance" } | sort ) {
+		
+		ForEach ( $disk in $vmhost | Get-ScsiLun -luntype Disk | Where { $_.isLocal -eq $True -and $_.CanonicalName -match "intel" } | sort ) {
+				
+			New-Object PSObject -Property @{
+				cl = $cl.Name
+				vmhost = $vmhost.Name
+				RAM = $vmhost.MemoryTotalGB
+				disk = $disk.CanonicalName
+				size = $disk.CapacityGB
+			}
+			
+		}
+	}
+}
+$table1 | select cl,vmhost,RAM,disk,size | Export-Csv -Path d:\0\0-kur-depo-test.csv -NoTypeInformation -UseCulture -Encoding UTF8
+
+######################
+#	Fibre Channel
+######################
+
+#
+#	Not mine
+#
+$CSVName = 'd:\FC.csv'
+
+#Get cluster and all host HBA information and change format from Binary to hex
+$list = Get-cluster | sort | Get-VMhost | sort | Get-VMHostHBA -Type FibreChannel | Select @{N="Cluster";E={$_.Name.Parent}},VMHost,Device,@{N="WWN";E={"{0:X}" -f $_.PortWorldWideName}}
+
+#Go through each row and put : between every 2 digits
+foreach ($item in $list){
+   $item.wwn = (&{for ($i=0;$i -lt $item.wwn.length;$i+=2)   
+                    {     
+                        $item.wwn.substring($i,2)   
+                    }}) -join':' 
+}
+
+#Output CSV to current directory.
+$list | export-csv $CSVName -NoTypeInformation -UseCulture -Encoding UTF8
+
+#
+#	Collecting hosts' WWN info
+#
+$vmtable = foreach($cl in get-cluster | sort){
+	#$cl
+	foreach($vmhost in $cl | get-vmhost | sort){
+		#$vmhost
+		foreach($hba in $vmhost | Get-VMHostHBA -Type FibreChannel | sort){
+			#$hba
+			New-Object PSObject -Property @{
+				Cluster = $cl.Name
+				VMHost = $vmhost.Name
+				Device = $hba.Device				
+				NodeWWN = "{0:X}" -f $hba.NodeWorldWideName
+				PortWWN = "{0:X}" -f $hba.PortWorldWideName
+			}	
+		}
+	}	
+}
+foreach ($item in $vmtable){
+   $item.NodeWWN = (&{for ($i=0;$i -lt $item.NodeWWN.length;$i+=2)   
+                    {     
+                        $item.NodeWWN.substring($i,2)   
+                    }}) -join':' 
+}
+foreach ($item in $vmtable){
+   $item.PortWWN = (&{for ($i=0;$i -lt $item.PortWWN.length;$i+=2)   
+                    {     
+                        $item.PortWWN.substring($i,2)   
+                    }}) -join':' 
+}
+$vmtable | select Cluster,VMHost,Device,NodeWWN,PortWWN | Export-Csv -Path "D:\test.csv" -NoTypeInformation -UseCulture -Encoding UTF8
+
+########################
+#	Multipath policy	
+########################
+$output=@()
+ForEach($VMHost in get-cluster VMCL08 | get-vmhost | sort){
+	Write-Warning "Grabbing Data for $VMHost"
+	ForEach($lun in ($VMHost | Get-ScsiLun -luntype Disk | Where { $_.MultipathPolicy -ne "Fixed" } | sort MultipathPolicy)){
+		$collect="" | select "Host","Cluster","Datastore","Canonicalname", "MultipathPolicy"
+		$collect.Host=$VMHost.name
+		$collect.Cluster=$VMHost.Parent
+		$collect.canonicalname=$lun.CanonicalName
+		$collect.multipathpolicy=$lun.MultipathPolicy
+		$collect.Datastore = (Get-Datastore | ? {($_.extensiondata.info.vmfs.extent | select -expand diskname) -like $lun.CanonicalName}).Name
+		$output+=$collect
+	}
+}
+$output | ft -auto
+$output | Out-File C:\datastoresprod.csv
+
+Get-VMHost | Get-ScsiLun -LunType disk | Set-ScsiLun -MultipathPolicy "RoundRobin"
+
+###########################################
+#	Суммарный объем датасторов на СХД
+###########################################
+$csv = "D:\VNX-IP.csv"
+$Data = import-csv $csv -Delimiter ';'
+$abc = "d:/0-niz-st.csv"
+$table = ForEach ($row in $Data) {
+	Write-Host $row.Name
+	$x = get-datastore *$($row.Name)*
+	$y = [math]::Round(($x | Measure-Object -Sum CapacityGB).Sum / 1024)
+	$z = [math]::Round(($x | Measure-Object -Sum FreeSpaceGB).Sum / 1024)	
+	New-Object PSObject -Property @{
+		Name = $row.Name		
+		CapacityTB = $y
+		FreeSpaceTB = $z		
+	}
+}
+$table | select Name,CapacityTB,FreeSpaceTB | Export-Csv -Path $abc -NoTypeInformation -UseCulture -Encoding UTF8
+
+###########
+#	silver datastores, vms on them, migrate vms to bronze
+###########
+# серебряные датасторы по кластерам
+$abc = "d:/0-kur-VMCL-s.csv"
+$table = ForEach ( $cl in get-cluster VMCL* | sort ) {# | where { $_.Name -ne "VMCL07" -and $_.Name -ne "VMCL08" -and $_.Name -ne "VMCL18" } | sort ) {
+	Write-Host $cl.Name
+	ForEach ( $ds in $cl | get-datastore | where { $_.Name -match ".*-s$" } | sort ) {
+		Write-Host $ds.Name		
+		New-Object PSObject -Property @{
+			cl = $cl.Name
+			name = $ds.Name
+			vm = ($ds | get-vm).Count
+			CapacityGB = [math]::Round($ds.CapacityGB)
+			FreeSpaceGB = [math]::Round($ds.FreeSpaceGB)
+			naa = $ds.ExtensionData.Info.Vmfs.Extent[0].DiskName
+		}
+	}
+}
+$table | select cl,name,vm,CapacityGB,FreeSpaceGB,naa | Export-Csv -Path $abc -NoTypeInformation -UseCulture -Encoding UTF8
+$table = $table | where { $_.vm -ne 0 }
+$CLs = ($table | group cl).Name
+# виртуальные машины по кластерам, по серебряным датасторам
+$tableVM = ForEach ( $row in $table ) {
+	Write-Host $row.name
+	ForEach ( $vm in get-datastore $row.name | get-vm | sort ) {
+		New-Object PSObject -Property @{
+			cl = $row.cl
+			ds = $row.name
+			vm = $vm.Name
+			shddName = ($vm | get-harddisk | where { $_.Filename -match '\-s\]' }).Name
+			shddSizeGB = ($vm | get-harddisk | where { $_.Filename -match '\-s\]' }).CapacityGB
+			bhddName = ($vm | get-harddisk | where { $_.Filename -match '\-b\]' }).Name
+			bhddDS = ($vm | get-harddisk | where { $_.Filename -match '\-b\]' }).Filename.Split('\[')[1].Split('\]')[0]
+			bhddSizeGB = ($vm | get-harddisk | where { $_.Filename -match '\-b\]' }).CapacityGB
+		}
+	}
+}
+$tableVM | ft cl,ds,vm,shddName,shddSizeGB,bhddName,bhddDS
+$tableVM | select cl,ds,vm,shddName,shddSizeGB | Export-Csv -Path d:\0-kur-vm-s.csv -NoTypeInformation -UseCulture -Encoding UTF8
+# миграция sda виртуальных машин с серебра на бронзу
+ForEach ( $cl in $CLs ) {
+	
+	Write-Host $cl  -ForegroundColor "Yellow"
+	Write-Host " "
+	$Data = $tableVM | Where {$_.cl -eq $cl}
+	$Data | ft
+	
+	Read-Host -Prompt "Press Enter to continue or close the PS window to quit" 
+	
+	ForEach ( $row in $Data ) {
+		Write-Host $row.vm ":" $row.ds "->" $row.bhddDS
+		#Write-Host $row.ds "->" $row.bhddDS
+		Write-Host " "
+		#Write-Host "Get-VM" $row.vm "| Get-HardDisk | where {$_.Filename -match" $row.ds "} | Move-HardDisk -Datastore" $row.bhddDS "-Confirm:$false | Out-Null"
+		#Get-VM $row.vm | Get-HardDisk | where {$_.Filename -match $row.ds } | Move-HardDisk -Datastore $row.bhddDS -Confirm:$false | Out-Null
+		Get-VM $row.vm | Move-VM -Datastore $row.bhddDS | Out-Null
+	}
+}
