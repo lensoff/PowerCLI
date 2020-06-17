@@ -6,29 +6,39 @@
 Get-VMHost | Get-VMHostStorage
 Get-VMHost | Get-ScsiLun -LunType disk
 Get-VMHost | Get-Datastore
-Get-VMHostHba -VMhost "srv06-20.echd.ru" -Type iScsi | ft -autosize
+Get-VMHostHba -VMhost "srv06-20.abc.abc" -Type iScsi | ft -autosize
 # Get-ScsiLun
 $vmhost | Get-ScsiLun -CanonicalName "naa.*" | ft -autosize
 $vmhost | Get-ScsiLun -LunType disk | ft -autosize
-Get-ScsiLun -VMhost "srv06-20.echd.ru" -LunType disk | ft -autosize
+Get-ScsiLun -VMhost "srv06-20.abc.abc" -LunType disk | ft -autosize
 # get-datastore
-Get-Datastore -VMhost "srv06-20.echd.ru" | ft -autosize
+Get-Datastore -VMhost "srv06-20.abc.abc" | ft -autosize
 get-datastore *ST12-06* | sort | select -First 1 | Get-VMHost | sort | select -First 1 | Get-Cluster
 Get-datastore | Where {$_.name -like '*PROD*' -or $_.name -like '*REPL*'} | Get-VM
 Get-datastore | Where {$_.name -like '*ST01-01*' } | Get-VM | where { $_.PowerState -eq "PoweredOn"} | ft -autosize
+get-datastore | where { $_.Name -like "*ST01-01*" -or $_.Name -like "*ST01-02*"} | sort | ft Name,FileSystemVersion,@{N="vm";E={ ($_ | get-vm).Count }} -auto
+$cl | get-datastore | where { $_.Name -like "*ST04-02*" } | ft Name,FileSystemVersion,@{N="vm";E={ ($_ | get-vm).Count }} -auto
+
 # Measure
 (get-datastore | where { $_.Name -match "-g$" } | Measure-Object -Sum CapacityGB).Sum
 # Canonical Names
 $table = Get-Datastore $dss | Select Name,@{N='CanonicalName';E={$_.ExtensionData.Info.Vmfs.Extent[0].DiskName}},@{N='CapacityGB';E={ [math]::Round($_.CapacityGB) }},@{N='FreeSpaceGB';E={ [math]::Round($_.FreeSpaceGB) }}
 $table | select Name,CanonicalName,CapacityGB,FreeSpaceGB | Export-Csv -Path d:\reportTest.csv -NoTypeInformation -UseCulture -Encoding UTF8
-# DatastoreFunctions.psm1
-Get-VMHostStorage -VMhost "srv06-20.echd.ru" | Format-List *
+#Retrieve the Canonical Name(s)
+Get-ScsiLun -VMHost "srv06-22.abc.abc" -LunType disk |
+Select RuntimeName,CanonicalName,CapacityGB |
+Sort-Object -Property {$_.RuntimeName.Split(‘:’)[0],
+[int]($_.RuntimeName.Split(‘:’)[1].TrimStart(‘C’))},
+{[int]($_.RuntimeName.Split(‘:’)[2].TrimStart(‘T’))},
+{[int]($_.RuntimeName.Split(‘:’)[3].TrimStart(‘L’))}
 
 #############################
 #	More complex reports
 #############################
 
+##############################################################
 # Datastore Info (Naa, Canonical Name, lun id, host lun id)
+##############################################################
 $csv = Get-Cluster VMCL51 | Get-Datastore | sort |
 select Name,CapacityGB,
     @{N='LUN';E={
@@ -39,7 +49,9 @@ select Name,CapacityGB,
 	@{N='CanonicalName';E={$_.ExtensionData.Info.Vmfs.Extent[0].DiskName}}
 $csv | Export-Csv -Path "D:\VMCL51-lun-vsphere.csv" -NoTypeInformation -UseCulture -Encoding UTF8
 
+#####################
 # vmfs6 datastores
+#####################
 $abc = "d:/0-kur-vmfs6.csv"
 $table = ForEach ( $cl in get-cluster | sort ) {
 	Write-Host $cl.Name
@@ -235,4 +247,5 @@ ForEach ( $cl in $CLs ) {
 		#Get-VM $row.vm | Get-HardDisk | where {$_.Filename -match $row.ds } | Move-HardDisk -Datastore $row.bhddDS -Confirm:$false | Out-Null
 		Get-VM $row.vm | Move-VM -Datastore $row.bhddDS | Out-Null
 	}
+
 }

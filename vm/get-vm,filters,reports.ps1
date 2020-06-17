@@ -58,6 +58,22 @@ ForEach ($ip in $ipdb) {
 #	Reports
 ##################
 
+#A Simple Report
+$path = "D:\0-elect02-vm-report.csv"
+$vmtable = foreach($vm in get-vm | sort ){
+	New-Object PSObject -Property @{
+		Name = $vm.Name
+		Hostname = $vm.guest.hostname
+		PowerState = $vm.PowerState
+		#NumCpu = $vm.NumCpu
+		#RAM = $vm.MemoryMB
+		#HardDiskSizeGB = ($vm | Get-HardDisk | Measure-Object -Sum CapacityGB).Sum
+		GuestOS = $vm.ExtensionData.summary.config.guestfullname
+		IP = ($vm.Guest.IPAddress | where {([IPAddress]$_).AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork} | sort) -join ","
+	}
+}
+$vmtable | select Name,PowerState,Hostname,GuestOS,IP | Export-Csv -Path $path -NoTypeInformation -UseCulture -Encoding UTF8
+
 #Рекордеры старого типа по кластерам
 $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 	Write-Host $cl.Name
@@ -87,7 +103,7 @@ $table = ForEach ( $cl in get-cluster VMCL* | sort ) {
 		}
 	}
 }
-$table | select cl,ds,vm,hostname | Export-Csv -Path $abc -NoTypeIniformation -UseCulture -Encoding UTF8
+$table | select cl,ds,vm,hostname | Export-Csv -Path $abc -NoTypeInformation -UseCulture -Encoding UTF8
 invoke-item $abc
 
 #Количество свободного места под рекордеры в кластерах

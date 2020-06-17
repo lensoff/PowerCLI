@@ -1,0 +1,20 @@
+Using the Local ESXi Shell
+
+After you enable the ESXi Shell in the direct console, you can use it from main direct console screen or remotely through a serial port.
+
+To use the local ESXi Shell
+
+At the main direct console screen, press Alt-F1 to open a virtual console window to the host.
+Provide credentials when prompted.
+When you type the password, characters are not displayed on the console.
+Enter shell commands to perform management tasks.
+To log out, type exit in the shell.
+To return to the direct console, type Alt-F2. 
+
+#####################
+
+- after installing ESXi , after pressing Alt + F1 blank screen
+
+- You need to enable ESXi shell. You can do it on DCUI in "Troubleshooting Options" -> "Enable ESXi Shell".
+
+#https://communities.vmware.com/thread/474451

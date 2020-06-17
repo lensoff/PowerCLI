@@ -58,6 +58,8 @@ Get-VM -Name $vm | Set-VM -GuestId $guestId -Confirm:$false
 	get-VM $vm | Get-Networkadapter | Set-Networkadapter -type vmxnet3 -Confirm:$false
 Start-VM $vm -Confirm:$False
 
+#guest_os_type=ubuntu64Guest (even with Debian)
+
 #########################
 #	Move to a folder	#
 #########################

@@ -20,13 +20,13 @@ ForEach ( $fld in get-folder "Spare","ZIP" ) {
 #	rescan with workflow
 ################################
 $cl = ''
+$hosts = (get-cluster $cl | get-vmhost | sort).Name
 $vPass = ''
-$vmhosts = (get-cluster $cl | get-vmhost | sort).Name
 Workflow Rescan-WF {
 
 	Param (
 		[Parameter(Mandatory=$true, Position=0)]
-		[string[]] $vmhosts,	
+		[string[]] $hosts,	
 		[Parameter(Mandatory=$true, Position=1)]
 		[string] $vCenter,
 		[Parameter(Mandatory=$true, Position=2)]
@@ -36,7 +36,7 @@ Workflow Rescan-WF {
 	)	
 		
 	# Цикл, который будет выполняться параллельно
-	foreach -parallel ( $vmhost in $vmhosts ) {
+	foreach -parallel ( $vmhost in $hosts ) {
 		# Это скрипт, который видит только свои переменные и те, которые ему переданы через $Using
 		InlineScript {
 			$a = Connect-VIServer -Server $Using:vCenter -User $Using:User -Password $Using:Password
@@ -49,7 +49,7 @@ Workflow Rescan-WF {
 		}
 	}
 }
-Rescan-WF $vmhosts $global:DefaultVIServer.Name $global:DefaultVIServer.User $vPass
+Rescan-WF $hosts $global:DefaultVIServer.Name $global:DefaultVIServer.User $vPass
 
 #########################
 #	Create Datastores	
@@ -214,8 +214,8 @@ Read-Host -Prompt "Press Enter continue or CTRL+C to quit"
 ForEach ($row in $dsTableSort ){
 	$lunID = $row.LUN
 	$stID = $row.LUN.Substring(1,1)
-	$ds = "VMCL09-ST09-0$stID-L$lunID-b"
-	#$ds = "VMCL13-ST13-04-L$lunID-b"
+	#$ds = "VMCL09-ST09-0$stID-L$lunID-b"
+	$ds = "ELECL01-ST05-02-L$lunID-s"
 	Write-Host "Creating datastore $ds with CanonicalName" $row.CanonicalName "on" $vmhost -ForegroundColor "Yellow"
 	$vmhost | New-Datastore -Name $ds -Path $row.CanonicalName -Vmfs -FileSystemVersion 5 | Out-Null
 }

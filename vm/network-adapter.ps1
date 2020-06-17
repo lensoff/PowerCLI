@@ -8,7 +8,6 @@ Get-VM | Name,@{N="ip";E={$_.Guest.IPAddress | where {([IPAddress]$_).AddressFam
 #vm,mac
 Get-VM | Select-Object -Property Name,@{"Name"="MAC";"Expression"={($_ | Get-NetworkAdapter).MacAddress}}
 
-
 #$_.Guest.IPAddress
 #$vm.Guest.IPAddress | where {([IPAddress]$_).AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork}
 

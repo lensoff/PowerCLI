@@ -322,13 +322,16 @@ $table | select Cluster,Host,logDir | Export-Csv -Path "D:\logDirAll.csv" -NoTyp
 ###############
 # Syslog Server
 ###############
-Get-VMHost Esxi001, Esxi002 | Set-VMHostSysLogServer -SysLogServer 'udp://192.168.34.15:514'
-Get-VMhostFireWallException -VMhost esxi001.vcloud-lab.com -Name syslog
-Get-VMHostFireWallException -VMHost esxi002.vcloud-lab.com -Name Syslog | Set-VMHostFirewallException -Enabled:$True
+
+$vmhost | Get-VMhostFireWallException -Name syslog
+$vmhost | Get-VMhostFireWallException -Name syslog | Set-VMHostFirewallException -Enabled:$True
+$vmhost | Set-VMHostSysLogServer -SysLogServer 'udp://graylog-elect.echd.ru:514'
+$vmhost | Get-VMHostService | where { $_.Key -eq "vmsyslogd" } | Restart-VMHostService -Confirm:$false | Out-Null
 #or (untested)
 Get-VMHost esxi001.vcloud-lab.com | Get-AdvancedSetting -Name Syslog.Global.Loghost | Set-AdvancedSetting -Value udp://10.168.34.15:514 -Confirm:$false
 #disabling
 Set-VMHostSysLogServer -SysLogServer $null -VMHost Host
+#https://www.adventuresinpowercli.com/2019/08/configure-syslog-on-multiple-esxi-hosts.html
 
 #############
 #	SNMP
@@ -411,6 +414,16 @@ ForEach ( $esx in get-vmhost $hosts | sort ) {
 	$esx | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Start-VMHostService | Out-Null
 	$esx | Get-VmHostService | Where-Object {$_.key -eq "ntpd"} | Set-VMHostService -policy "on" | Out-Null
 }
+ 
+#################################
+#	SuppressHyperthreadWarning	#
+#################################
+get-vmhost | Where {$_.Build -eq "9313334"} | sort | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | where { $_.Value -eq "0" } | ft Entity,Value
+
+ForEach ( $hosts in  get-vmhost | Where {$_.Build -eq "9313334"} | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | where { $_.Value -eq "0" } ) {
+	Write-Host "Working on host" $hosts -ForegroundColor "Yellow"
+	Get-VMHost $hosts.Entity | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | Set-AdvancedSetting -Value 1 -Confirm:$false
+}
 
 ################################
 #	Atomic Test and Set (ATS) locking
@@ -453,16 +466,6 @@ ForEach ($esx in $hosts) {
 	& ./SMCIPMITool.exe $esxipmi ADMIN ADMIN ipmi fan 0 | Out-Null
 	(& ./SMCIPMITool.exe $esxipmi ADMIN ADMIN ipmi fan)[0]
 	Write-Host " "
-}
- 
-#################################
-#	SuppressHyperthreadWarning	#
-#################################
-get-vmhost | Where {$_.Build -eq "9313334"} | sort | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | where { $_.Value -eq "0" } | ft Entity,Value
-
-ForEach ( $hosts in  get-vmhost | Where {$_.Build -eq "9313334"} | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | where { $_.Value -eq "0" } ) {
-	Write-Host "Working on host" $hosts -ForegroundColor "Yellow"
-	Get-VMHost $hosts.Entity | Get-AdvancedSetting UserVars.SuppressHyperthreadWarning | Set-AdvancedSetting -Value 1 -Confirm:$false
 }
 
 #################
