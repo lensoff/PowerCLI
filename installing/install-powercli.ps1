@@ -16,6 +16,13 @@ Set-PowerCLIConfiguration -Scope User -ParticipateInCEIP $false -Confirm:$false
 ############################
 Set-PowerCLIConfiguration -DefaultVIServerMode Multiple -Confirm:$false
 
+############################
+#	Another optional parameter
+############################
+(Get-PowerCLIConfiguration -Scope Session).WebOperationTimeoutSeconds #a default value (300)
+Set-PowerCLIConfiguration -Scope User -WebOperationTimeoutSeconds 1800000 -Confirm:$false
+#https://pubs.vmware.com/vsphere-51/index.jsp?topic=%2Fcom.vmware.powercli.ug.doc%2FGUID-4F61FB46-5917-4979-88BB-DF5649167CF3.html
+
 ############################################
 #	Update the module
 ############################################
