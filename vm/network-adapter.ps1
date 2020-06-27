@@ -16,6 +16,11 @@ Get-VM | Select-Object -Property Name,@{"Name"="MAC";"Expression"={($_ | Get-Net
 ####################
 
 $PortGroupName = Get-VDPortGroup ''
+#or
+$vlanId = ''
+$vdswitch = ""
+$PortGroupName = get-vdswitch $vdswitch | Get-VDPortGroup | Where { $_.VlanConfiguration -like "*$($vlanId)" }
+
 get-vm $vm | get-networkadapter | set-networkadapter -PortGroup $PortGroupName –Confirm:$true
 get-vm $vm | get-networkadapter | set-networkadapter -Connected:$true -StartConnected:$true –Confirm:$true
 

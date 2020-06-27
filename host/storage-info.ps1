@@ -31,7 +31,15 @@ Sort-Object -Property {$_.RuntimeName.Split(‘:’)[0],
 [int]($_.RuntimeName.Split(‘:’)[1].TrimStart(‘C’))},
 {[int]($_.RuntimeName.Split(‘:’)[2].TrimStart(‘T’))},
 {[int]($_.RuntimeName.Split(‘:’)[3].TrimStart(‘L’))}
-
+#Retrieve cluster SAN storage systems
+$table = ForEach ( $st in $cl | get-datastore | where { $_.Name -notlike "*logs*" -and $_.Name -notlike "*nfs*" } ) {
+		$stSplit = ($st.Name.Split('-')[1] + "-" + $st.Name.Split('-')[2] + "-" + $st.Name.Split('-')[4]).ToLower()
+		New-Object PSObject -Property @{
+			cl = $cl.Name
+			st = $stSplit
+	}
+}
+$table | group st | sort Name
 #############################
 #	More complex reports
 #############################

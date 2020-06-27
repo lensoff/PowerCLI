@@ -23,3 +23,12 @@ New-AdvancedSetting -Entity $vm -Name tools.setInfo.sizeLimit -Value '1048576' -
 New-AdvancedSetting -Entity $vm -Name guest.commands.enabled -Value FALSE -Confirm:$false -Force:$true
 #Sending performance counters into PerfMon
 New-AdvancedSetting -Entity $vm -Name tools.guestlib.enableHostInfo -Value FALSE -Confirm:$false -Force:$true
+#bios.bootdelay
+$vmName = 'TestVM'
+$vm = Get-VM -Name $vmName
+
+$spec = New-Object VMware.Vim.VirtualMachineConfigSpec
+$spec.BootOptions = New-Object VMware.Vim.VirtualMachineBootOptions
+#$spec.BootOptions.EnterBIOSSetup = $true
+$spec.BootOptions.BootDelay = 10000
+$vm.ExtensionData.ReconfigVM($spec) 

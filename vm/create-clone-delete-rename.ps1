@@ -84,7 +84,7 @@ Set-OSCustomizationSpec -OSCustomizationSpec $OSCusSpec -NamingScheme Fixed -Nam
 
 #Get updated Spec Object
 $OSCusSpec = Get-OSCustomizationSpec -Name $randomOSCustomName
-Wait 5
+Start-Sleep 5
 
 $vm = New-VM -Template $template -Name $vmName -VMHost $vmhost -Datastore $storage -OSCustomizationSpec $OSCusSpec -Confirm:$false
 Get-VM -Name $vm | Get-CDDrive | Set-CDDrive -NoMedia -Confirm:$false | Out-Null

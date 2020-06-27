@@ -31,7 +31,9 @@ $view = get-view –viewtype VirtualMachine –filter @{"Name"="zbx-node1"}
 ##################
 #filter by ip
 #I
-Get-VM | Where-Object {$_.Guest.IPAddress -eq "10.200.154.10"} | select Name,VMHost,Folder
+$vms = Get-VM | sort
+$ip = "10.4.3.16"
+$vms | Where-Object {$_.Guest.IPAddress -eq $ip} | select Name,VMHost,Folder
 #II
 $list = Get-View -ViewType VirtualMachine | Select name,@{N='IP';E={[string]::Join(',',$_.Guest.ipaddress)}}
 $list | ?{ $_.ip -eq "10.200.201.165" }

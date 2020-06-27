@@ -3,6 +3,7 @@
 ############
 get-vmhost | select Name,Parent,ConnectionState,Build | sort Build
 Get-VMHost |  Where {$_.Name -like "srv09-16*"}
+get-vmhost | sort | select Name,@{N="ManIP";E={($_ | Get-VMHostNetworkAdapter -VMKernel | where { $_.ManagementTrafficEnabled -eq $true }).IP}} | Export-Csv -Path d:\0\elect-esxi-ManIP.csv -NoTypeInformation -UseCulture -Encoding UTF8
 
 ####################
 #	Operations
@@ -83,7 +84,9 @@ $esx | Get-VMHostNetworkAdapter -Physical | Where-Object { $_.BitRatePerSec -eq 
 #filtering out unusual network adapters
 $esx | Get-VMHostNetworkAdapter -Physical | Where {$_.name -notlike 'vmnic0' -and $_.name -notlike 'vmnic1' -and $_.name -notlike 'vmnic2' -and $_.name -notlike 'vmnic3' -and $_.name -notlike 'vmnic1000202' -and $_.name -notlike 'vmnic1000302'} | select Name,VMHost | ft -autosize
 #EsxCli to show network adapters
-(Get-EsxCli -VMHost $esx).network.nic.list() | Select Name, Description  
+(Get-EsxCli -VMHost $esx).network.nic.list() | Select Name, Description
+#management IP address
+($esx | Get-VMHostNetworkAdapter -VMKernel | where { $_.ManagementTrafficEnabled -eq $true }).IP
 
 Get-VDPortGroup | Where { $_.VlanConfiguration -like '*602' }
 Get-VDPortGroup | Where { $_.VlanConfiguration -like '*602' } | Get-VDswitch | sort NumPorts
